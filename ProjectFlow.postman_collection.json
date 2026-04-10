@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "ProjectFlow API",
+    "description": "Mini Project Management System — all endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base", "value": "http://localhost:5000" },
+    { "key": "projectId", "value": "" },
+    { "key": "taskId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/projects?page=1&limit=10",
+              "host": ["{{base}}"],
+              "path": ["projects"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base}}/projects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Website Redesign\",\n  \"description\": \"Redesign company website with new branding\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "url": "{{base}}/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "Delete Project",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base}}/projects/{{projectId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List Tasks",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"]
+            }
+          }
+        },
+        {
+          "name": "List Tasks — filter by status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks?status=todo",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"],
+              "query": [{ "key": "status", "value": "todo" }]
+            }
+          }
+        },
+        {
+          "name": "List Tasks — sort by due_date",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks?sort=due_date",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"],
+              "query": [{ "key": "sort", "value": "due_date" }]
+            }
+          }
+        },
+        {
+          "name": "Create Task",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base}}/projects/{{projectId}}/tasks",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Design mockups\",\n  \"description\": \"Figma wireframes for all screens\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"due_date\": \"2025-06-15\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base}}/tasks/{{taskId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in-progress\",\n  \"priority\": \"medium\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Task",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base}}/tasks/{{taskId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
