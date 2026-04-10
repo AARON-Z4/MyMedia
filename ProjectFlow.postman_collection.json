@@ -57,7 +57,7 @@
     },
     {
       "name": "📁 Projects",
-      "description": "CRUD operations for Projects. The **Create Project** request automatically stores the returned `_id` into the `projectId` collection variable for use in subsequent requests.",
+      "description": "CRUD operations for Projects. The **Create Project** request automatically stores the returned `_id` into the `projectId` **environment** variable for use in subsequent requests.",
       "item": [
         {
           "name": "Create Project",
@@ -76,7 +76,7 @@
               "raw": "{\n  \"name\": \"Website Redesign\",\n  \"description\": \"Full company website overhaul with new branding and UX\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "description": "Creates a new project.\n\n**Required fields:** `name`\n\n**Optional fields:** `description`\n\nThe test script automatically saves the new project's `_id` to the `projectId` variable."
+            "description": "Creates a new project.\n\n**Required fields:** `name`\n\n**Optional fields:** `description`\n\nThe test script automatically saves the new project's `_id` to the `projectId` **environment** variable."
           },
           "response": [
             {
@@ -128,6 +128,7 @@
                   "// Auto-save project ID for subsequent requests",
                   "const json = pm.response.json();",
                   "if (json._id) {",
+                  "  pm.environment.set('projectId', json._id);",
                   "  pm.collectionVariables.set('projectId', json._id);",
                   "  console.log('✅ projectId saved:', json._id);",
                   "}"
@@ -426,6 +427,7 @@
                   "// Auto-save task ID",
                   "const json = pm.response.json();",
                   "if (json._id) {",
+                  "  pm.environment.set('taskId', json._id);",
                   "  pm.collectionVariables.set('taskId', json._id);",
                   "  console.log('✅ taskId saved:', json._id);",
                   "}"
