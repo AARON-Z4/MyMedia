@@ -1,129 +1,910 @@
 {
   "info": {
     "name": "ProjectFlow API",
-    "description": "Mini Project Management System — all endpoints",
+    "description": "# ProjectFlow — Mini Project Management System\n\nComplete API collection for the ProjectFlow backend.\n\n## Base URL\n`http://localhost:5000`\n\n## Quick Start\n1. Import this collection **and** the `ProjectFlow.postman_environment.json` environment file.\n2. Select the **ProjectFlow Local** environment from the top-right dropdown.\n3. Run the requests in order — **Create Project** and **Create Task** automatically save IDs into the environment variables `projectId` and `taskId`.\n\n## Features Covered\n- Pagination (`?page` + `?limit`)\n- Task filtering by `status`\n- Task sorting by `due_date`\n- Input validation (400 error examples included)\n- Proper error responses (404, 400, 500)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base", "value": "http://localhost:5000" },
-    { "key": "projectId", "value": "" },
-    { "key": "taskId", "value": "" }
+    { "key": "base", "value": "http://localhost:5000", "type": "string" },
+    { "key": "projectId", "value": "", "type": "string" },
+    { "key": "taskId", "value": "", "type": "string" }
   ],
   "item": [
     {
-      "name": "Projects",
+      "name": "🩺 Health Check",
       "item": [
         {
-          "name": "List Projects",
+          "name": "Health Check",
           "request": {
             "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/health",
+              "host": ["{{base}}"],
+              "path": ["health"]
+            },
+            "description": "Verifies the server is running. Returns `{ ok: true }`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base}}/health" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"ok\": true\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Server is healthy', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.ok).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📁 Projects",
+      "description": "CRUD operations for Projects. The **Create Project** request automatically stores the returned `_id` into the `projectId` collection variable for use in subsequent requests.",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base}}/projects",
+              "host": ["{{base}}"],
+              "path": ["projects"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Website Redesign\",\n  \"description\": \"Full company website overhaul with new branding and UX\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new project.\n\n**Required fields:** `name`\n\n**Optional fields:** `description`\n\nThe test script automatically saves the new project's `_id` to the `projectId` variable."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Website Redesign\",\n  \"description\": \"Full company website overhaul\"\n}"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n  \"name\": \"Website Redesign\",\n  \"description\": \"Full company website overhaul with new branding and UX\",\n  \"created_at\": \"2026-04-10T08:00:00.000Z\",\n  \"__v\": 0\n}"
+            },
+            {
+              "name": "400 Validation Error — missing name",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects" },
+                "body": { "mode": "raw", "raw": "{}" }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Validation failed\",\n  \"details\": [\n    {\n      \"type\": \"field\",\n      \"msg\": \"Name is required\",\n      \"path\": \"name\",\n      \"location\": \"body\"\n    }\n  ]\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has _id, name, description, created_at', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('_id');",
+                  "  pm.expect(json).to.have.property('name');",
+                  "  pm.expect(json).to.have.property('description');",
+                  "  pm.expect(json).to.have.property('created_at');",
+                  "});",
+                  "",
+                  "// Auto-save project ID for subsequent requests",
+                  "const json = pm.response.json();",
+                  "if (json._id) {",
+                  "  pm.collectionVariables.set('projectId', json._id);",
+                  "  console.log('✅ projectId saved:', json._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Projects (paginated)",
+          "request": {
+            "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{base}}/projects?page=1&limit=10",
               "host": ["{{base}}"],
               "path": ["projects"],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "10" }
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default: 10, max: 100)" }
               ]
+            },
+            "description": "Returns a paginated list of all projects, sorted by most recently created.\n\n**Query params:**\n- `page` — page number (default: 1)\n- `limit` — items per page (default: 10, max: 100)"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base}}/projects?page=1&limit=10" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n      \"name\": \"Website Redesign\",\n      \"description\": \"Full company website overhaul\",\n      \"created_at\": \"2026-04-10T08:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 1,\n    \"pages\": 1\n  }\n}"
             }
-          }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has data array and pagination object', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data').that.is.an('array');",
+                  "  pm.expect(json).to.have.property('pagination');",
+                  "  pm.expect(json.pagination).to.have.all.keys('page', 'limit', 'total', 'pages');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Create Project",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base}}/projects",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Website Redesign\",\n  \"description\": \"Redesign company website with new branding\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Get Project",
+          "name": "List Projects — page 2",
           "request": {
             "method": "GET",
-            "url": "{{base}}/projects/{{projectId}}"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects?page=2&limit=5",
+              "host": ["{{base}}"],
+              "path": ["projects"],
+              "query": [
+                { "key": "page", "value": "2" },
+                { "key": "limit", "value": "5" }
+              ]
+            },
+            "description": "Demonstrates pagination — fetches page 2 with 5 items per page."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pagination page is 2', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.pagination.page).to.equal(2);",
+                  "  pm.expect(json.pagination.limit).to.equal(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}"]
+            },
+            "description": "Fetch a single project by its MongoDB `_id`.\n\nUses the `projectId` variable auto-set by the **Create Project** request."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base}}/projects/{{projectId}}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n  \"name\": \"Website Redesign\",\n  \"description\": \"Full company website overhaul\",\n  \"created_at\": \"2026-04-10T08:00:00.000Z\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base}}/projects/000000000000000000000000" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Project not found\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returned project matches projectId', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json._id).to.equal(pm.collectionVariables.get('projectId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Delete Project",
           "request": {
             "method": "DELETE",
-            "url": "{{base}}/projects/{{projectId}}"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}"]
+            },
+            "description": "Deletes a project **and all its associated tasks** (cascading delete).\n\n⚠️ Run this last — once deleted, `projectId` will no longer be valid for task requests."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": { "raw": "{{base}}/projects/{{projectId}}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Project deleted\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": { "raw": "{{base}}/projects/000000000000000000000000" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Project not found\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response confirms deletion', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.equal('Project deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Tasks",
+      "name": "✅ Tasks",
+      "description": "Task operations scoped to a project. Use `GET /projects/:project_id/tasks` with query params to filter by status and sort by due_date.\n\nThe **Create Task** request auto-saves `taskId` for Update and Delete requests.",
       "item": [
         {
-          "name": "List Tasks",
+          "name": "Create Task",
           "request": {
-            "method": "GET",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{base}}/projects/{{projectId}}/tasks",
               "host": ["{{base}}"],
               "path": ["projects", "{{projectId}}", "tasks"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Design Mockups\",\n  \"description\": \"Figma wireframes for all screens\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"due_date\": \"2026-06-15\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new task under the specified project.\n\n**Required:** `title`\n\n**Optional:**\n- `description` — string\n- `status` — `todo` | `in-progress` | `done` (default: `todo`)\n- `priority` — `low` | `medium` | `high` (default: `medium`)\n- `due_date` — ISO 8601 date string (e.g. `2026-06-15`)\n\nThe test script auto-saves the new task's `_id` to `taskId`."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects/{{projectId}}/tasks" },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Design Mockups\",\n  \"description\": \"Figma wireframes\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"due_date\": \"2026-06-15\"\n}"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"_id\": \"664f1a2b3c4d5e6f7a8b9c0e\",\n  \"project_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n  \"title\": \"Design Mockups\",\n  \"description\": \"Figma wireframes for all screens\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"due_date\": \"2026-06-15T00:00:00.000Z\",\n  \"created_at\": \"2026-04-10T08:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 Validation Error — missing title",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects/{{projectId}}/tasks" },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"todo\"\n}" }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Validation failed\",\n  \"details\": [\n    {\n      \"type\": \"field\",\n      \"msg\": \"Title is required\",\n      \"path\": \"title\",\n      \"location\": \"body\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 Validation Error — invalid status",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects/{{projectId}}/tasks" },
+                "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test\",\n  \"status\": \"invalid-value\"\n}" }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Validation failed\",\n  \"details\": [\n    {\n      \"type\": \"field\",\n      \"msg\": \"Invalid status\",\n      \"path\": \"status\",\n      \"location\": \"body\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Project Not Found",
+              "originalRequest": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/projects/000000000000000000000000/tasks" },
+                "body": { "mode": "raw", "raw": "{\n  \"title\": \"Test task\"\n}" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Project not found\"\n}"
             }
-          }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Task has all required fields', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('_id');",
+                  "  pm.expect(json).to.have.property('project_id');",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  pm.expect(json).to.have.property('status');",
+                  "  pm.expect(json).to.have.property('priority');",
+                  "  pm.expect(json).to.have.property('created_at');",
+                  "});",
+                  "",
+                  "// Auto-save task ID",
+                  "const json = pm.response.json();",
+                  "if (json._id) {",
+                  "  pm.collectionVariables.set('taskId', json._id);",
+                  "  console.log('✅ taskId saved:', json._id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "List Tasks — filter by status",
+          "name": "List Tasks (all)",
           "request": {
             "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"]
+            },
+            "description": "Returns all tasks for a project with pagination. Default sort: newest first."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "url": { "raw": "{{base}}/projects/{{projectId}}/tasks" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"_id\": \"664f1a2b3c4d5e6f7a8b9c0e\",\n      \"project_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n      \"title\": \"Design Mockups\",\n      \"description\": \"Figma wireframes for all screens\",\n      \"status\": \"todo\",\n      \"priority\": \"high\",\n      \"due_date\": \"2026-06-15T00:00:00.000Z\",\n      \"created_at\": \"2026-04-10T08:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"pages\": 1\n  }\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has data array and pagination', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  pm.expect(json.pagination).to.have.all.keys('page', 'limit', 'total', 'pages');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Tasks — filter by status=todo",
+          "request": {
+            "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{base}}/projects/{{projectId}}/tasks?status=todo",
               "host": ["{{base}}"],
               "path": ["projects", "{{projectId}}", "tasks"],
-              "query": [{ "key": "status", "value": "todo" }]
+              "query": [
+                { "key": "status", "value": "todo", "description": "Filter: todo | in-progress | done" }
+              ]
+            },
+            "description": "Returns only tasks with `status = todo`.\n\nValid values: `todo`, `in-progress`, `done`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('All returned tasks have status=todo', function () {",
+                  "  const json = pm.response.json();",
+                  "  json.data.forEach(task => {",
+                  "    pm.expect(task.status).to.equal('todo');",
+                  "  });",
+                  "});"
+                ]
+              }
             }
-          }
+          ]
+        },
+        {
+          "name": "List Tasks — filter by status=in-progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks?status=in-progress",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"],
+              "query": [
+                { "key": "status", "value": "in-progress" }
+              ]
+            },
+            "description": "Returns only tasks with `status = in-progress`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('All returned tasks have status=in-progress', function () {",
+                  "  const json = pm.response.json();",
+                  "  json.data.forEach(task => {",
+                  "    pm.expect(task.status).to.equal('in-progress');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Tasks — filter by status=done",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks?status=done",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"],
+              "query": [
+                { "key": "status", "value": "done" }
+              ]
+            },
+            "description": "Returns only tasks with `status = done`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('All returned tasks have status=done', function () {",
+                  "  const json = pm.response.json();",
+                  "  json.data.forEach(task => {",
+                  "    pm.expect(task.status).to.equal('done');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Tasks — sort by due_date",
           "request": {
             "method": "GET",
+            "header": [],
             "url": {
               "raw": "{{base}}/projects/{{projectId}}/tasks?sort=due_date",
               "host": ["{{base}}"],
               "path": ["projects", "{{projectId}}", "tasks"],
-              "query": [{ "key": "sort", "value": "due_date" }]
+              "query": [
+                { "key": "sort", "value": "due_date", "description": "Sorts tasks ascending by due_date (earliest first)" }
+              ]
+            },
+            "description": "Returns tasks sorted by `due_date` ascending (earliest deadline first).\n\nThis is useful for seeing which tasks are most urgent."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Tasks returned in due_date order', function () {",
+                  "  const json = pm.response.json();",
+                  "  const dates = json.data.map(t => t.due_date).filter(Boolean);",
+                  "  for (let i = 1; i < dates.length; i++) {",
+                  "    pm.expect(new Date(dates[i])).to.be.at.least(new Date(dates[i-1]));",
+                  "  }",
+                  "});"
+                ]
+              }
             }
-          }
+          ]
         },
         {
-          "name": "Create Task",
+          "name": "List Tasks — filter + sort + paginate",
           "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base}}/projects/{{projectId}}/tasks",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Design mockups\",\n  \"description\": \"Figma wireframes for all screens\",\n  \"status\": \"todo\",\n  \"priority\": \"high\",\n  \"due_date\": \"2025-06-15\"\n}"
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks?status=todo&sort=due_date&page=1&limit=5",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"],
+              "query": [
+                { "key": "status", "value": "todo", "description": "Filter by status" },
+                { "key": "sort", "value": "due_date", "description": "Sort by due date ascending" },
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "5", "description": "Items per page" }
+              ]
+            },
+            "description": "Combines all query params: filter by `status=todo`, sort by `due_date`, and paginate with `page=1&limit=5`.\n\nDemonstrates all three required features in a single request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response structure is correct', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.data).to.be.an('array');",
+                  "  pm.expect(json.pagination.limit).to.equal(5);",
+                  "  pm.expect(json.pagination.page).to.equal(1);",
+                  "  json.data.forEach(task => pm.expect(task.status).to.equal('todo'));",
+                  "});"
+                ]
+              }
             }
-          }
+          ]
         },
         {
           "name": "Update Task",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base}}/tasks/{{taskId}}",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base}}/tasks/{{taskId}}",
+              "host": ["{{base}}"],
+              "path": ["tasks", "{{taskId}}"]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"in-progress\",\n  \"priority\": \"medium\"\n}"
+              "raw": "{\n  \"status\": \"in-progress\",\n  \"priority\": \"medium\",\n  \"due_date\": \"2026-07-01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates any fields of a task. All fields are optional — only send what you want to change.\n\n**Updatable fields:**\n- `title` — string (cannot be empty)\n- `description` — string\n- `status` — `todo` | `in-progress` | `done`\n- `priority` — `low` | `medium` | `high`\n- `due_date` — ISO 8601 date string"
+          },
+          "response": [
+            {
+              "name": "200 OK — status updated",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/tasks/{{taskId}}" },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"in-progress\"\n}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"_id\": \"664f1a2b3c4d5e6f7a8b9c0e\",\n  \"project_id\": \"664f1a2b3c4d5e6f7a8b9c0d\",\n  \"title\": \"Design Mockups\",\n  \"description\": \"Figma wireframes for all screens\",\n  \"status\": \"in-progress\",\n  \"priority\": \"medium\",\n  \"due_date\": \"2026-07-01T00:00:00.000Z\",\n  \"created_at\": \"2026-04-10T08:00:00.000Z\"\n}"
+            },
+            {
+              "name": "400 Validation Error — invalid priority",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/tasks/{{taskId}}" },
+                "body": { "mode": "raw", "raw": "{\n  \"priority\": \"critical\"\n}" }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"error\": \"Validation failed\",\n  \"details\": [\n    {\n      \"type\": \"field\",\n      \"msg\": \"Invalid priority\",\n      \"path\": \"priority\",\n      \"location\": \"body\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "url": { "raw": "{{base}}/tasks/000000000000000000000000" },
+                "body": { "mode": "raw", "raw": "{\n  \"status\": \"done\"\n}" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Task not found\"\n}"
             }
-          }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Task status was updated to in-progress', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('in-progress');",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Delete Task",
           "request": {
             "method": "DELETE",
-            "url": "{{base}}/tasks/{{taskId}}"
-          }
+            "header": [],
+            "url": {
+              "raw": "{{base}}/tasks/{{taskId}}",
+              "host": ["{{base}}"],
+              "path": ["tasks", "{{taskId}}"]
+            },
+            "description": "Permanently deletes a single task by its `_id`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": { "raw": "{{base}}/tasks/{{taskId}}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Task deleted\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "originalRequest": {
+                "method": "DELETE",
+                "url": { "raw": "{{base}}/tasks/000000000000000000000000" }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"error\": \"Task not found\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200 OK', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response confirms deletion', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.message).to.equal('Task deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "⚠️ Error Cases",
+      "description": "Demonstrates proper error handling for invalid IDs, missing fields, and constraint violations.",
+      "item": [
+        {
+          "name": "404 — Get non-existent project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/projects/000000000000000000000000",
+              "host": ["{{base}}"],
+              "path": ["projects", "000000000000000000000000"]
+            },
+            "description": "Returns 404 when a project with the given ID does not exist."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error message present', function () {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 — Create project without name",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base}}/projects",
+              "host": ["{{base}}"],
+              "path": ["projects"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Missing the required name field\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Returns 400 when `name` is missing from the request body."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error details array present', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('details').that.is.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 — Create task with invalid status",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base}}/projects/{{projectId}}/tasks",
+              "host": ["{{base}}"],
+              "path": ["projects", "{{projectId}}", "tasks"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Bad Task\",\n  \"status\": \"pending\",\n  \"priority\": \"urgent\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Returns 400 because `pending` and `urgent` are not valid enum values."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 400 Bad Request', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Validation details list invalid fields', function () {",
+                  "  const json = pm.response.json();",
+                  "  const paths = json.details.map(d => d.path);",
+                  "  pm.expect(paths).to.include.members(['status', 'priority']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 — Route not found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/unknown-route",
+              "host": ["{{base}}"],
+              "path": ["unknown-route"]
+            },
+            "description": "Returns 404 for any route that doesn't exist."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
